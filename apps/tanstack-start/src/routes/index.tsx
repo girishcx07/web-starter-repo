@@ -7,8 +7,8 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import type { RouterOutputs } from "@acme/api";
-import { CreatePostSchema } from "@acme/db/schema";
+import type { CreatePostInput, Post } from "@acme/api";
+import { CreatePostSchema, POSTS_LIST_QUERY_KEY } from "@acme/api";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import {
@@ -21,16 +21,24 @@ import {
 import { Input } from "@acme/ui/input";
 import { toast } from "@acme/ui/toast";
 
+import { api } from "~/api";
 import { AuthShowcase } from "~/component/auth-showcase";
-import { useTRPC } from "~/lib/trpc";
+import { SharedPackagesDemo } from "~/component/shared-packages-demo";
 
 export const Route = createFileRoute("/")({
   loader: ({ context }) => {
-    const { trpc, queryClient } = context;
-    void queryClient.prefetchQuery(trpc.post.all.queryOptions());
+    const { queryClient } = context;
+    void queryClient.prefetchQuery({
+      queryKey: POSTS_LIST_QUERY_KEY,
+      queryFn: () => api.posts.getAll(),
+    });
   },
   component: RouteComponent,
 });
+
+function isUnauthorized(e: unknown) {
+  return e instanceof Error && e.message === "UNAUTHORIZED";
+}
 
 function RouteComponent() {
   return (
@@ -40,6 +48,8 @@ function RouteComponent() {
           Create <span className="text-primary">T3</span> Turbo
         </h1>
         <AuthShowcase />
+
+        <SharedPackagesDemo framework="tanstack-start" />
 
         <CreatePostForm />
         <div className="w-full max-w-2xl overflow-y-scroll">
@@ -61,24 +71,21 @@ function RouteComponent() {
 }
 
 function CreatePostForm() {
-  const trpc = useTRPC();
-
   const queryClient = useQueryClient();
-  const createPost = useMutation(
-    trpc.post.create.mutationOptions({
-      onSuccess: async () => {
-        form.reset();
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
-      },
-      onError: (err) => {
-        toast.error(
-          err.data?.code === "UNAUTHORIZED"
-            ? "You must be logged in to post"
-            : "Failed to create post",
-        );
-      },
-    }),
-  );
+  const createPost = useMutation({
+    mutationFn: (input: CreatePostInput) => api.posts.create(input),
+    onSuccess: async () => {
+      form.reset();
+      await queryClient.invalidateQueries({ queryKey: POSTS_LIST_QUERY_KEY });
+    },
+    onError: (err) => {
+      toast.error(
+        isUnauthorized(err)
+          ? "You must be logged in to post"
+          : "Failed to create post",
+      );
+    },
+  });
 
   const form = useForm({
     defaultValues: {
@@ -108,7 +115,7 @@ function CreatePostForm() {
             return (
               <Field data-invalid={isInvalid}>
                 <FieldContent>
-                  <FieldLabel htmlFor={field.name}>Bug Title</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Post Title</FieldLabel>
                 </FieldContent>
                 <Input
                   id={field.name}
@@ -132,7 +139,7 @@ function CreatePostForm() {
             return (
               <Field data-invalid={isInvalid}>
                 <FieldContent>
-                  <FieldLabel htmlFor={field.name}>Content</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Body</FieldLabel>
                 </FieldContent>
                 <Input
                   id={field.name}
@@ -141,7 +148,7 @@ function CreatePostForm() {
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
-                  placeholder="Content"
+                  placeholder="Body"
                 />
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
@@ -155,8 +162,10 @@ function CreatePostForm() {
 }
 
 function PostList() {
-  const trpc = useTRPC();
-  const { data: posts } = useSuspenseQuery(trpc.post.all.queryOptions());
+  const { data: posts } = useSuspenseQuery({
+    queryKey: POSTS_LIST_QUERY_KEY,
+    queryFn: () => api.posts.getAll(),
+  });
 
   if (posts.length === 0) {
     return (
@@ -181,23 +190,21 @@ function PostList() {
   );
 }
 
-function PostCard(props: { post: RouterOutputs["post"]["all"][number] }) {
-  const trpc = useTRPC();
+function PostCard(props: { post: Post }) {
   const queryClient = useQueryClient();
-  const deletePost = useMutation(
-    trpc.post.delete.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
-      },
-      onError: (err) => {
-        toast.error(
-          err.data?.code === "UNAUTHORIZED"
-            ? "You must be logged in to delete a post"
-            : "Failed to delete post",
-        );
-      },
-    }),
-  );
+  const deletePost = useMutation({
+    mutationFn: (id: Post["id"]) => api.posts.delete(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: POSTS_LIST_QUERY_KEY });
+    },
+    onError: (err) => {
+      toast.error(
+        isUnauthorized(err)
+          ? "You must be logged in to delete a post"
+          : "Failed to delete post",
+      );
+    },
+  });
 
   return (
     <div className="bg-muted flex flex-row rounded-lg p-4">

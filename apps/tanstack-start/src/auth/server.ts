@@ -1,16 +1,14 @@
-import { reactStartCookies } from "better-auth/react-start";
-
-import { initAuth } from "@acme/auth";
+import type { AuthHandlerConfig } from "@acme/auth/server";
 
 import { env } from "~/env";
-import { getBaseUrl } from "~/lib/url";
 
-export const auth = initAuth({
-  baseUrl: getBaseUrl(),
-  productionUrl: `https://${env.VERCEL_PROJECT_PRODUCTION_URL ?? "turbo.t3.gg"}`,
-  secret: env.AUTH_SECRET,
-  discordClientId: env.AUTH_DISCORD_ID,
-  discordClientSecret: env.AUTH_DISCORD_SECRET,
-
-  extraPlugins: [reactStartCookies()],
-});
+export function getAuthHandlerConfig(): AuthHandlerConfig {
+  return {
+    issuerBaseUrl: env.VITE_PUBLIC_TANSTACK_APP_URL,
+    authSecret: env.AUTH_SECRET,
+    secureCookies: env.NODE_ENV === "production",
+    demoEmail: env.AUTH_DEMO_EMAIL,
+    demoPassword: env.AUTH_DEMO_PASSWORD,
+    demoUserName: env.AUTH_DEMO_NAME,
+  };
+}

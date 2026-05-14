@@ -5,7 +5,7 @@ import { reactConfig } from "@acme/eslint-config/react";
 
 export default defineConfig(
   {
-    ignores: [".react-router/**", "build/**"],
+    ignores: [".react-router/**", "build/**", "server.js"],
   },
   baseConfig,
   reactConfig,

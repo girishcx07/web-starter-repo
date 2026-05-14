@@ -1,36 +1,41 @@
 import { createEnv } from "@t3-oss/env-core";
-import { vercel } from "@t3-oss/env-core/presets-zod";
 import { z } from "zod/v4";
 
-import { authEnv } from "@acme/auth/env";
+const defaultApi = "https://jsonplaceholder.typicode.com";
+const defaultAppUrl = "http://localhost:3002";
 
 export const env = createEnv({
   clientPrefix: "VITE_",
-  extends: [authEnv(), vercel()],
   shared: {
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
   },
-  /**
-   * Specify your server-side environment variables schema here.
-   * This way you can ensure the app isn't built with invalid env vars.
-   */
   server: {
-    POSTGRES_URL: z.url(),
+    API_URL: z.string().url().default(defaultApi),
+    AUTH_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string().min(1)
+        : z.string().min(1).optional(),
+    AUTH_DEMO_EMAIL: z.string().email().optional(),
+    AUTH_DEMO_PASSWORD: z.string().optional(),
+    AUTH_DEMO_NAME: z.string().optional(),
   },
-
-  /**
-   * Specify your client-side environment variables schema here.
-   * Prefix them with `VITE_` to expose them to the client.
-   */
   client: {
-    // VITE_CLIENTVAR: z.string(),
+    VITE_PUBLIC_API_URL: z.string().url().default(defaultApi),
+    VITE_PUBLIC_REACT_ROUTER_APP_URL: z.string().url().default(defaultAppUrl),
   },
-  /**
-   * Destructure all variables from `process.env` to make sure they aren't tree-shaken away.
-   */
-  runtimeEnv: process.env,
+  runtimeEnv: {
+    NODE_ENV: process.env.NODE_ENV,
+    API_URL: process.env.API_URL,
+    VITE_PUBLIC_API_URL: import.meta.env.VITE_PUBLIC_API_URL,
+    VITE_PUBLIC_REACT_ROUTER_APP_URL:
+      import.meta.env.VITE_PUBLIC_REACT_ROUTER_APP_URL,
+    AUTH_SECRET: process.env.AUTH_SECRET,
+    AUTH_DEMO_EMAIL: process.env.AUTH_DEMO_EMAIL,
+    AUTH_DEMO_PASSWORD: process.env.AUTH_DEMO_PASSWORD,
+    AUTH_DEMO_NAME: process.env.AUTH_DEMO_NAME,
+  },
   skipValidation:
     !!process.env.CI || process.env.npm_lifecycle_event === "lint",
 });

@@ -1,14 +1,11 @@
 "use client";
 
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
 
-import type { RouterOutputs } from "@acme/api";
-import { CreatePostSchema } from "@acme/db/schema";
+import type { CreatePostInput, Post } from "@acme/api";
+import { CreatePostSchema } from "@acme/api";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import {
@@ -21,27 +18,31 @@ import {
 import { Input } from "@acme/ui/input";
 import { toast } from "@acme/ui/toast";
 
-import { useTRPC } from "~/trpc/react";
+import { createPostAction, deletePostAction } from "~/app/actions/posts";
+
+function isUnauthorized(e: unknown) {
+  return e instanceof Error && e.message === "UNAUTHORIZED";
+}
 
 export function CreatePostForm() {
-  const trpc = useTRPC();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
-  const queryClient = useQueryClient();
-  const createPost = useMutation(
-    trpc.post.create.mutationOptions({
-      onSuccess: async () => {
+  function createPost(input: CreatePostInput) {
+    startTransition(async () => {
+      try {
+        await createPostAction(input);
         form.reset();
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
-      },
-      onError: (err) => {
+        router.refresh();
+      } catch (err) {
         toast.error(
-          err.data?.code === "UNAUTHORIZED"
+          isUnauthorized(err)
             ? "You must be logged in to post"
             : "Failed to create post",
         );
-      },
-    }),
-  );
+      }
+    });
+  }
 
   const form = useForm({
     defaultValues: {
@@ -51,7 +52,7 @@ export function CreatePostForm() {
     validators: {
       onSubmit: CreatePostSchema,
     },
-    onSubmit: (data) => createPost.mutate(data.value),
+    onSubmit: (data) => createPost(data.value),
   });
 
   return (
@@ -71,7 +72,7 @@ export function CreatePostForm() {
             return (
               <Field data-invalid={isInvalid}>
                 <FieldContent>
-                  <FieldLabel htmlFor={field.name}>Bug Title</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Post Title</FieldLabel>
                 </FieldContent>
                 <Input
                   id={field.name}
@@ -95,7 +96,7 @@ export function CreatePostForm() {
             return (
               <Field data-invalid={isInvalid}>
                 <FieldContent>
-                  <FieldLabel htmlFor={field.name}>Content</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Body</FieldLabel>
                 </FieldContent>
                 <Input
                   id={field.name}
@@ -104,7 +105,7 @@ export function CreatePostForm() {
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
-                  placeholder="Content"
+                  placeholder="Body"
                 />
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
@@ -112,14 +113,15 @@ export function CreatePostForm() {
           }}
         />
       </FieldGroup>
-      <Button type="submit">Create</Button>
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "Creating..." : "Create"}
+      </Button>
     </form>
   );
 }
 
-export function PostList() {
-  const trpc = useTRPC();
-  const { data: posts } = useSuspenseQuery(trpc.post.all.queryOptions());
+export function PostList(props: { posts: Post[] }) {
+  const { posts } = props;
 
   if (posts.length === 0) {
     return (
@@ -144,25 +146,24 @@ export function PostList() {
   );
 }
 
-export function PostCard(props: {
-  post: RouterOutputs["post"]["all"][number];
-}) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const deletePost = useMutation(
-    trpc.post.delete.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
-      },
-      onError: (err) => {
+export function PostCard(props: { post: Post }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function deletePost() {
+    startTransition(async () => {
+      try {
+        await deletePostAction(props.post.id);
+        router.refresh();
+      } catch (err) {
         toast.error(
-          err.data?.code === "UNAUTHORIZED"
+          isUnauthorized(err)
             ? "You must be logged in to delete a post"
             : "Failed to delete post",
         );
-      },
-    }),
-  );
+      }
+    });
+  }
 
   return (
     <div className="bg-muted flex flex-row rounded-lg p-4">
@@ -174,7 +175,8 @@ export function PostCard(props: {
         <Button
           variant="ghost"
           className="text-primary cursor-pointer text-sm font-bold uppercase hover:bg-transparent hover:text-white"
-          onClick={() => deletePost.mutate(props.post.id)}
+          disabled={isPending}
+          onClick={deletePost}
         >
           Delete
         </Button>

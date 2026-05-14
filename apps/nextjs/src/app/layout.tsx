@@ -1,27 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { AuthProvider } from "@acme/auth";
 import { cn } from "@acme/ui";
 import { ThemeProvider, ThemeToggle } from "@acme/ui/theme";
 import { Toaster } from "@acme/ui/toast";
 
 import { env } from "~/env";
-import { TRPCReactProvider } from "~/trpc/react";
+import { ReactQueryProvider } from "~/lib/react-query";
 
 import "~/app/styles.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    env.VERCEL_ENV === "production"
-      ? "https://turbo.t3.gg"
-      : "http://localhost:3000",
-  ),
+  metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
   title: "Create T3 Turbo",
-  description: "Simple monorepo with shared backend for web & mobile apps",
+  description: "Simple monorepo with shared packages for web apps",
   openGraph: {
     title: "Create T3 Turbo",
-    description: "Simple monorepo with shared backend for web & mobile apps",
-    url: "https://create-t3-turbo.vercel.app",
+    description: "Simple monorepo with shared packages for web apps",
+    url: env.NEXT_PUBLIC_APP_URL,
     siteName: "Create T3 Turbo",
   },
   twitter: {
@@ -58,7 +55,9 @@ export default function RootLayout(props: { children: React.ReactNode }) {
         )}
       >
         <ThemeProvider>
-          <TRPCReactProvider>{props.children}</TRPCReactProvider>
+          <AuthProvider>
+            <ReactQueryProvider>{props.children}</ReactQueryProvider>
+          </AuthProvider>
           <div className="absolute right-4 bottom-4">
             <ThemeToggle />
           </div>

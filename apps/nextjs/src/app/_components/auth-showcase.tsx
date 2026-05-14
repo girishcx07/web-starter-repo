@@ -1,35 +1,60 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
 
+import { useState } from "react";
+
+import { useAuth } from "@acme/auth";
 import { Button } from "@acme/ui/button";
+import { Input } from "@acme/ui/input";
 
-import { auth, getSession } from "~/auth/server";
+export function AuthShowcase() {
+  const { session, status, login, logout } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-export async function AuthShowcase() {
-  const session = await getSession();
+  if (status === "loading") {
+    return <p className="text-muted-foreground text-sm">Checking session…</p>;
+  }
 
   if (!session) {
     return (
-      <form>
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <p className="text-muted-foreground text-center text-sm">
+          Demo login (configure <code className="text-xs">AUTH_DEMO_EMAIL</code>{" "}
+          and <code className="text-xs">AUTH_DEMO_PASSWORD</code> in{" "}
+          <code className="text-xs">.env</code>).
+        </p>
+        <Input
+          type="email"
+          autoComplete="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Input
+          type="password"
+          autoComplete="current-password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error ? (
+          <p className="text-destructive text-center text-sm">{error}</p>
+        ) : null}
         <Button
           size="lg"
-          formAction={async () => {
-            "use server";
-            const res = await auth.api.signInSocial({
-              body: {
-                provider: "discord",
-                callbackURL: "/",
-              },
-            });
-            if (!res.url) {
-              throw new Error("No URL returned from signInSocial");
+          onClick={async () => {
+            setError(null);
+            try {
+              await login(email, password);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Login failed");
             }
-            redirect(res.url);
           }}
         >
-          Sign in with Discord
+          Sign in
         </Button>
-      </form>
+      </div>
     );
   }
 
@@ -39,20 +64,9 @@ export async function AuthShowcase() {
         <span>Logged in as {session.user.name}</span>
       </p>
 
-      <form>
-        <Button
-          size="lg"
-          formAction={async () => {
-            "use server";
-            await auth.api.signOut({
-              headers: await headers(),
-            });
-            redirect("/");
-          }}
-        >
-          Sign out
-        </Button>
-      </form>
+      <Button size="lg" onClick={() => void logout()}>
+        Sign out
+      </Button>
     </div>
   );
 }

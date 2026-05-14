@@ -1,30 +1,56 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 
+import { useAuth } from "@acme/auth";
 import { Button } from "@acme/ui/button";
-
-import { authClient } from "~/auth/client";
+import { Input } from "@acme/ui/input";
 
 export function AuthShowcase() {
-  const { data: session } = authClient.useSession();
-  const navigate = useNavigate();
+  const { session, status, login, logout } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  if (status === "loading") {
+    return <p className="text-muted-foreground text-sm">Checking session…</p>;
+  }
 
   if (!session) {
     return (
-      <Button
-        size="lg"
-        onClick={async () => {
-          const res = await authClient.signIn.social({
-            provider: "discord",
-            callbackURL: "/",
-          });
-          if (!res.data?.url) {
-            throw new Error("No URL returned from signInSocial");
-          }
-          await navigate({ href: res.data.url, replace: true });
-        }}
-      >
-        Sign in with Discord
-      </Button>
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <p className="text-muted-foreground text-center text-sm">
+          Demo login — set AUTH_DEMO_EMAIL and AUTH_DEMO_PASSWORD in .env.
+        </p>
+        <Input
+          type="email"
+          autoComplete="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Input
+          type="password"
+          autoComplete="current-password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error ? (
+          <p className="text-destructive text-center text-sm">{error}</p>
+        ) : null}
+        <Button
+          size="lg"
+          onClick={async () => {
+            setError(null);
+            try {
+              await login(email, password);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Login failed");
+            }
+          }}
+        >
+          Sign in
+        </Button>
+      </div>
     );
   }
 
@@ -34,13 +60,7 @@ export function AuthShowcase() {
         <span>Logged in as {session.user.name}</span>
       </p>
 
-      <Button
-        size="lg"
-        onClick={async () => {
-          await authClient.signOut();
-          await navigate({ href: "/", replace: true });
-        }}
-      >
+      <Button size="lg" onClick={() => void logout()}>
         Sign out
       </Button>
     </div>

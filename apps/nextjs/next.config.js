@@ -11,7 +11,8 @@ const config = {
   transpilePackages: [
     "@acme/api",
     "@acme/auth",
-    "@acme/db",
+    "@acme/types",
+    "@acme/utils",
     "@acme/ui",
     "@acme/validators",
   ],

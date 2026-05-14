@@ -4,7 +4,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "pnpm with-env vite dev",
+    "dev": "pnpm with-env vite dev --port 3001",
     "build": "vite build",
     "start": "vite start",
     "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",
@@ -15,8 +15,10 @@
   "dependencies": {
     "@acme/api": "workspace:*",
     "@acme/auth": "workspace:*",
-    "@acme/db": "workspace:*",
+    "@acme/caller": "workspace:*",
+    "@acme/types": "workspace:*",
     "@acme/ui": "workspace:*",
+    "@acme/utils": "workspace:*",
     "@fontsource-variable/geist": "^5.2.8",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@t3-oss/env-core": "^0.13.8",
@@ -26,14 +28,9 @@
     "@tanstack/react-router-devtools": "^1.135.2",
     "@tanstack/react-router-ssr-query": "^1.135.2",
     "@tanstack/react-start": "^1.135.2",
-    "@trpc/client": "catalog:",
-    "@trpc/server": "catalog:",
-    "@trpc/tanstack-react-query": "catalog:",
-    "better-auth": "catalog:",
     "nitro": "3.0.1-alpha.1",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
-    "superjson": "2.2.3",
     "zod": "catalog:"
   },
   "devDependencies": {
