@@ -2,9 +2,11 @@ export {
   CreatePostSchema,
   PostIdSchema,
   PostSchema,
+  UpdatePostSchema,
   type CreatePostInput,
   type Post,
   type PostId,
+  type UpdatePostInput,
 } from "./schema/post";
 export { createApiClient, type ApiClient } from "./router";
 

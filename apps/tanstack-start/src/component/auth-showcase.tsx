@@ -6,8 +6,8 @@ import { Input } from "@acme/ui/input";
 
 export function AuthShowcase() {
   const { session, status, login, logout } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("demo@example.com");
+  const [password, setPassword] = useState("password");
   const [error, setError] = useState<string | null>(null);
 
   if (status === "loading") {
@@ -16,9 +16,11 @@ export function AuthShowcase() {
 
   if (!session) {
     return (
-      <div className="flex w-full max-w-sm flex-col gap-3">
-        <p className="text-muted-foreground text-center text-sm">
-          Demo login — set AUTH_DEMO_EMAIL and AUTH_DEMO_PASSWORD in .env.
+      <div className="bg-muted flex min-h-full w-full flex-col gap-3 rounded-md border p-4">
+        <p className="text-muted-foreground text-sm font-medium">Auth flow</p>
+        <p className="text-sm">
+          Sign in with the demo credentials, then sign out to verify cookie
+          session handling.
         </p>
         <Input
           type="email"
@@ -38,7 +40,6 @@ export function AuthShowcase() {
           <p className="text-destructive text-center text-sm">{error}</p>
         ) : null}
         <Button
-          size="lg"
           onClick={async () => {
             setError(null);
             try {
@@ -55,14 +56,13 @@ export function AuthShowcase() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4">
-      <p className="text-center text-2xl">
+    <div className="bg-muted flex min-h-full w-full flex-col justify-between gap-4 rounded-md border p-4">
+      <p className="text-muted-foreground text-sm font-medium">Auth flow</p>
+      <p className="text-lg font-semibold">
         <span>Logged in as {session.user.name}</span>
       </p>
 
-      <Button size="lg" onClick={() => void logout()}>
-        Sign out
-      </Button>
+      <Button onClick={() => void logout()}>Sign out</Button>
     </div>
   );
 }

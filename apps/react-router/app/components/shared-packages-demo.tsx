@@ -22,6 +22,9 @@ const created = new Date(Date.now() - 45_000);
 export function SharedPackagesDemo(props: { framework: WebFramework }) {
   const parsed = unwrap(parseWebFramework(props.framework));
   const rejected = parseWebFramework("angular");
+  const rejectedLabel = rejected.ok
+    ? "unexpected"
+    : "invalid framework rejected";
 
   return (
     <section className="mb-8 w-full max-w-2xl rounded-lg border border-gray-200 bg-gray-50 p-4 text-left text-sm dark:border-gray-700 dark:bg-gray-900/40">
@@ -38,8 +41,7 @@ export function SharedPackagesDemo(props: { framework: WebFramework }) {
         </span>
       </p>
       <p className="mb-1 text-gray-600 dark:text-gray-400">
-        Invalid parse preserved as data:{" "}
-        <code>{rejected.ok ? "unexpected" : rejected.error.message}</code>
+        Invalid parse preserved as data: <code>{rejectedLabel}</code>
       </p>
       <p className="mb-1 text-gray-800 dark:text-gray-200">
         Branded <code>UserId</code>:{" "}

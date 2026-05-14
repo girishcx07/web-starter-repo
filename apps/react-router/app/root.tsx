@@ -12,6 +12,7 @@ import { ThemeProvider, ThemeToggle } from "@acme/ui/theme";
 import { Toaster } from "@acme/ui/toast";
 
 import type { Route } from "./+types/root";
+import { ReactQueryProvider } from "./lib/react-query";
 
 import "./app.css";
 
@@ -39,7 +40,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Links />
         </head>
         <body className="bg-background text-foreground min-h-screen font-sans antialiased">
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <ReactQueryProvider>{children}</ReactQueryProvider>
+          </AuthProvider>
           <div className="absolute right-4 bottom-4">
             <ThemeToggle />
           </div>

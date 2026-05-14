@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import {
   useMutation,
@@ -7,8 +7,13 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import type { CreatePostInput, Post } from "@acme/api";
-import { CreatePostSchema, POSTS_LIST_QUERY_KEY } from "@acme/api";
+import type { CreatePostInput, Post, UpdatePostInput } from "@acme/api";
+import {
+  CreatePostSchema,
+  PostIdSchema,
+  POSTS_LIST_QUERY_KEY,
+  UpdatePostSchema,
+} from "@acme/api";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import {
@@ -25,6 +30,57 @@ import { api } from "~/api";
 import { AuthShowcase } from "~/component/auth-showcase";
 import { SharedPackagesDemo } from "~/component/shared-packages-demo";
 
+type ActionResult =
+  | { ok: true; post?: Post; id?: Post["id"] }
+  | { ok: false; message: string };
+
+async function handlePostAction(request: Request) {
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+
+  try {
+    if (intent === "create") {
+      const input = CreatePostSchema.parse({
+        title: formData.get("title"),
+        content: formData.get("content"),
+      });
+      const post = await api.posts.create(input);
+      return Response.json({ ok: true, post } satisfies ActionResult);
+    }
+
+    if (intent === "update") {
+      const input = UpdatePostSchema.parse({
+        id: formData.get("id"),
+        title: formData.get("title"),
+        content: formData.get("content"),
+      });
+      const post = await api.posts.update(input);
+      return Response.json({ ok: true, post } satisfies ActionResult);
+    }
+
+    if (intent === "delete") {
+      const id = PostIdSchema.parse(formData.get("id"));
+      await api.posts.delete(id);
+      return Response.json({ ok: true, id } satisfies ActionResult);
+    }
+  } catch (error) {
+    return Response.json(
+      {
+        ok: false,
+        message: isUnauthorized(error)
+          ? "You must be logged in"
+          : "Request failed",
+      } satisfies ActionResult,
+      { status: 400 },
+    );
+  }
+
+  return Response.json(
+    { ok: false, message: "Unknown form intent" } satisfies ActionResult,
+    { status: 400 },
+  );
+}
+
 export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     const { queryClient } = context;
@@ -32,6 +88,11 @@ export const Route = createFileRoute("/")({
       queryKey: POSTS_LIST_QUERY_KEY,
       queryFn: () => api.posts.getAll(),
     });
+  },
+  server: {
+    handlers: {
+      POST: ({ request }) => handlePostAction(request),
+    },
   },
   component: RouteComponent,
 });
@@ -44,15 +105,27 @@ function RouteComponent() {
   return (
     <main className="container h-screen py-16">
       <div className="flex flex-col items-center justify-center gap-4">
-        <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-          Create <span className="text-primary">T3</span> Turbo
-        </h1>
-        <AuthShowcase />
+        <div className="w-full max-w-2xl text-center">
+          <p className="text-muted-foreground text-sm font-medium">
+            TanStack Start SSR demo
+          </p>
+          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+            Open API posts
+          </h1>
+          <p className="text-muted-foreground mt-3 text-sm">
+            SSR prefetches JSONPlaceholder through the typed API client,
+            Suspense hydrates TanStack Query, and client interactions submit to
+            server handlers for mutations.
+          </p>
+        </div>
 
-        <SharedPackagesDemo framework="tanstack-start" />
+        <div className="grid w-full max-w-4xl gap-4 md:grid-cols-2">
+          <SharedPackagesDemo framework="tanstack-start" />
+          <AuthShowcase />
+        </div>
 
         <CreatePostForm />
-        <div className="w-full max-w-2xl overflow-y-scroll">
+        <div className="w-full max-w-4xl overflow-y-scroll">
           <Suspense
             fallback={
               <div className="flex w-full flex-col gap-4">
@@ -70,13 +143,37 @@ function RouteComponent() {
   );
 }
 
+async function submitPostAction(body: Record<string, string | number>) {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(body)) {
+    formData.set(key, String(value));
+  }
+
+  const response = await fetch("/", {
+    method: "POST",
+    body: formData,
+  });
+  const result = (await response.json()) as ActionResult;
+  if (!response.ok || !result.ok) {
+    throw new Error(result.ok ? "Request failed" : result.message);
+  }
+  return result;
+}
+
 function CreatePostForm() {
   const queryClient = useQueryClient();
   const createPost = useMutation({
-    mutationFn: (input: CreatePostInput) => api.posts.create(input),
-    onSuccess: async () => {
+    mutationFn: (input: CreatePostInput) =>
+      submitPostAction({ ...input, intent: "create" }),
+    onSuccess: (result) => {
       form.reset();
-      await queryClient.invalidateQueries({ queryKey: POSTS_LIST_QUERY_KEY });
+      toast.success("Post accepted by the demo API");
+      if (result.post) {
+        queryClient.setQueryData<Post[]>(POSTS_LIST_QUERY_KEY, (posts = []) => [
+          result.post!,
+          ...posts,
+        ]);
+      }
     },
     onError: (err) => {
       toast.error(
@@ -156,7 +253,9 @@ function CreatePostForm() {
           }}
         />
       </FieldGroup>
-      <Button type="submit">Create</Button>
+      <Button type="submit" disabled={createPost.isPending}>
+        {createPost.isPending ? "Creating..." : "Create"}
+      </Button>
     </form>
   );
 }
@@ -182,7 +281,7 @@ function PostList() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4">
+    <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
       {posts.map((p) => {
         return <PostCard key={p.id} post={p} />;
       })}
@@ -192,10 +291,16 @@ function PostList() {
 
 function PostCard(props: { post: Post }) {
   const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(props.post.title);
+  const [content, setContent] = useState(props.post.content);
   const deletePost = useMutation({
-    mutationFn: (id: Post["id"]) => api.posts.delete(id),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: POSTS_LIST_QUERY_KEY });
+    mutationFn: (id: Post["id"]) => submitPostAction({ intent: "delete", id }),
+    onSuccess: (result) => {
+      toast.success("Delete accepted by the demo API");
+      queryClient.setQueryData<Post[]>(POSTS_LIST_QUERY_KEY, (posts = []) =>
+        posts.filter((post) => post.id !== result.id),
+      );
     },
     onError: (err) => {
       toast.error(
@@ -205,17 +310,103 @@ function PostCard(props: { post: Post }) {
       );
     },
   });
+  const updatePost = useMutation({
+    mutationFn: (input: UpdatePostInput) =>
+      submitPostAction({ ...input, intent: "update" }),
+    onSuccess: (result) => {
+      setIsEditing(false);
+      toast.success("Update accepted by the demo API");
+      if (result.post) {
+        queryClient.setQueryData<Post[]>(POSTS_LIST_QUERY_KEY, (posts = []) =>
+          posts.map((post) =>
+            post.id === result.post!.id ? result.post! : post,
+          ),
+        );
+      }
+    },
+    onError: (err) => {
+      toast.error(
+        isUnauthorized(err)
+          ? "You must be logged in to update a post"
+          : "Failed to update post",
+      );
+    },
+  });
+
+  const saveUpdate = () => {
+    const next = UpdatePostSchema.parse({
+      id: props.post.id,
+      title,
+      content,
+    });
+    updatePost.mutate(next);
+  };
 
   return (
-    <div className="bg-muted flex flex-row rounded-lg p-4">
+    <div className="bg-muted flex min-h-48 flex-col rounded-md border p-4">
       <div className="grow">
-        <h2 className="text-primary text-2xl font-bold">{props.post.title}</h2>
-        <p className="mt-2 text-sm">{props.post.content}</p>
+        <p className="text-muted-foreground text-xs font-medium">
+          Post #{props.post.id}
+        </p>
+        {isEditing ? (
+          <div className="mt-2 flex flex-col gap-2">
+            <Input
+              value={title}
+              aria-label={`Title for post ${props.post.id}`}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+            <Input
+              value={content}
+              aria-label={`Body for post ${props.post.id}`}
+              onChange={(event) => setContent(event.target.value)}
+            />
+          </div>
+        ) : (
+          <>
+            <h2 className="text-primary mt-1 line-clamp-2 text-lg font-bold">
+              {props.post.title}
+            </h2>
+            <p className="mt-3 line-clamp-4 text-sm">{props.post.content}</p>
+          </>
+        )}
       </div>
-      <div>
+      <div className="mt-4 flex gap-3">
+        {isEditing ? (
+          <>
+            <Button
+              variant="ghost"
+              className="text-primary h-8 cursor-pointer px-0 text-xs font-bold uppercase hover:bg-transparent hover:text-white"
+              disabled={updatePost.isPending}
+              onClick={saveUpdate}
+            >
+              {updatePost.isPending ? "Saving..." : "Save"}
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-muted-foreground h-8 cursor-pointer px-0 text-xs font-bold uppercase hover:bg-transparent"
+              disabled={updatePost.isPending}
+              onClick={() => {
+                setTitle(props.post.title);
+                setContent(props.post.content);
+                setIsEditing(false);
+              }}
+            >
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="ghost"
+            className="text-primary h-8 cursor-pointer px-0 text-xs font-bold uppercase hover:bg-transparent hover:text-white"
+            onClick={() => setIsEditing(true)}
+          >
+            Edit
+          </Button>
+        )}
         <Button
           variant="ghost"
-          className="text-primary cursor-pointer text-sm font-bold uppercase hover:bg-transparent hover:text-white"
+          className="text-primary h-8 cursor-pointer px-0 text-xs font-bold uppercase hover:bg-transparent hover:text-white"
+          disabled={deletePost.isPending}
           onClick={() => deletePost.mutate(props.post.id)}
         >
           Delete
@@ -228,7 +419,7 @@ function PostCard(props: { post: Post }) {
 function PostCardSkeleton(props: { pulse?: boolean }) {
   const { pulse = true } = props;
   return (
-    <div className="bg-muted flex flex-row rounded-lg p-4">
+    <div className="bg-muted flex min-h-48 flex-row rounded-md border p-4">
       <div className="grow">
         <h2
           className={cn(

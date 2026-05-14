@@ -14,6 +14,10 @@ export const CreatePostSchema = z.object({
   content: z.string().max(2048),
 });
 
+export const UpdatePostSchema = CreatePostSchema.extend({
+  id: PostIdSchema,
+});
+
 export const PostSchema = JsonPlaceholderPostSchema.transform((post) => ({
   id: post.id,
   title: post.title,
@@ -24,3 +28,4 @@ export const PostSchema = JsonPlaceholderPostSchema.transform((post) => ({
 export type Post = z.infer<typeof PostSchema>;
 export type PostId = z.infer<typeof PostIdSchema>;
 export type CreatePostInput = z.infer<typeof CreatePostSchema>;
+export type UpdatePostInput = z.infer<typeof UpdatePostSchema>;

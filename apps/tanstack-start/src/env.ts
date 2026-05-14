@@ -29,8 +29,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     API_URL: process.env.API_URL,
     VITE_PUBLIC_API_URL: import.meta.env.VITE_PUBLIC_API_URL,
-    VITE_PUBLIC_TANSTACK_APP_URL:
-      import.meta.env.VITE_PUBLIC_TANSTACK_APP_URL,
+    VITE_PUBLIC_TANSTACK_APP_URL: import.meta.env.VITE_PUBLIC_TANSTACK_APP_URL,
     AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_DEMO_EMAIL: process.env.AUTH_DEMO_EMAIL,
     AUTH_DEMO_PASSWORD: process.env.AUTH_DEMO_PASSWORD,
