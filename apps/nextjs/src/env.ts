@@ -2,37 +2,33 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { z } from "zod/v4";
 
-import { authEnv } from "@acme/auth/env";
+const defaultApi = "https://example.com/v1";
 
 export const env = createEnv({
-  extends: [authEnv(), vercel()],
+  extends: [vercel()],
   shared: {
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
   },
-  /**
-   * Specify your server-side environment variables schema here.
-   * This way you can ensure the app isn't built with invalid env vars.
-   */
   server: {
-    POSTGRES_URL: z.url(),
+    /** Remote Node API (server-side fetch, SSR, route handlers). */
+    API_URL: z.string().url().default(defaultApi),
+    AUTH_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string().min(1)
+        : z.string().min(1).optional(),
+    AUTH_DEMO_EMAIL: z.string().email().optional(),
+    AUTH_DEMO_PASSWORD: z.string().optional(),
+    AUTH_DEMO_NAME: z.string().optional(),
   },
-
-  /**
-   * Specify your client-side environment variables schema here.
-   * For them to be exposed to the client, prefix them with `NEXT_PUBLIC_`.
-   */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    /** Browser-facing same URL; keep in sync with `API_URL` in `.env`. */
+    NEXT_PUBLIC_API_URL: z.string().url().default(defaultApi),
   },
-  /**
-   * Destructure all variables from `process.env` to make sure they aren't tree-shaken away.
-   */
   experimental__runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-
-    // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
   skipValidation:
     !!process.env.CI || process.env.npm_lifecycle_event === "lint",

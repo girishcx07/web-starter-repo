@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import { SharedPackagesDemo } from "../components/shared-packages-demo";
 import { Welcome } from "../welcome/welcome";
 
 export function meta({}: Route.MetaArgs) {
@@ -13,5 +14,10 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  return <Welcome message={loaderData.message} />;
+  return (
+    <div className="flex flex-col items-center">
+      <SharedPackagesDemo framework="react-router" />
+      <Welcome message={loaderData.message} />
+    </div>
+  );
 }

@@ -5,6 +5,10 @@ node_modules
 .pnp
 .pnp.js
 
+# pnpm — never commit store / virtual-store trees (defense-in-depth beside `node_modules/`)
+**/.pnpm/
+.pnpm-store/
+
 # testing
 coverage
 
@@ -17,12 +21,9 @@ next-env.d.ts
 .nitro/
 .output/
 
-# expo
+# expo (legacy paths if re-adding a native app)
 .expo/
 expo-env.d.ts
-apps/expo/.gitignore
-apps/expo/ios
-apps/expo/android
 
 # production
 build

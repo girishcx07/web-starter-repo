@@ -1,4 +1,5 @@
-import { auth } from "~/auth/server";
+import { createNextAuthHandlers } from "@acme/auth";
 
-export const GET = auth.handler;
-export const POST = auth.handler;
+import { getAuthHandlerConfig } from "~/auth/server";
+
+export const { GET, POST } = createNextAuthHandlers(() => getAuthHandlerConfig());

@@ -7,8 +7,15 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 
-import type { RouterOutputs } from "@acme/api";
-import { CreatePostSchema } from "@acme/db/schema";
+import {
+  CreatePostSchema,
+  createRemotePost,
+  deleteRemotePost,
+  listPosts,
+  POSTS_LIST_QUERY_KEY,
+  type Post,
+} from "@acme/api";
+import { z } from "zod/v4";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import {
@@ -21,27 +28,29 @@ import {
 import { Input } from "@acme/ui/input";
 import { toast } from "@acme/ui/toast";
 
-import { useTRPC } from "~/trpc/react";
+import { env } from "~/env";
+
+function isUnauthorized(e: unknown) {
+  return e instanceof Error && e.message === "UNAUTHORIZED";
+}
 
 export function CreatePostForm() {
-  const trpc = useTRPC();
-
   const queryClient = useQueryClient();
-  const createPost = useMutation(
-    trpc.post.create.mutationOptions({
-      onSuccess: async () => {
-        form.reset();
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
-      },
-      onError: (err) => {
-        toast.error(
-          err.data?.code === "UNAUTHORIZED"
-            ? "You must be logged in to post"
-            : "Failed to create post",
-        );
-      },
-    }),
-  );
+  const createPost = useMutation({
+    mutationFn: (input: z.infer<typeof CreatePostSchema>) =>
+      createRemotePost(env.NEXT_PUBLIC_API_URL, input),
+    onSuccess: async () => {
+      form.reset();
+      await queryClient.invalidateQueries({ queryKey: POSTS_LIST_QUERY_KEY });
+    },
+    onError: (err) => {
+      toast.error(
+        isUnauthorized(err)
+          ? "You must be logged in to post"
+          : "Failed to create post",
+      );
+    },
+  });
 
   const form = useForm({
     defaultValues: {
@@ -118,8 +127,10 @@ export function CreatePostForm() {
 }
 
 export function PostList() {
-  const trpc = useTRPC();
-  const { data: posts } = useSuspenseQuery(trpc.post.all.queryOptions());
+  const { data: posts } = useSuspenseQuery({
+    queryKey: POSTS_LIST_QUERY_KEY,
+    queryFn: () => listPosts(env.NEXT_PUBLIC_API_URL),
+  });
 
   if (posts.length === 0) {
     return (
@@ -144,25 +155,22 @@ export function PostList() {
   );
 }
 
-export function PostCard(props: {
-  post: RouterOutputs["post"]["all"][number];
-}) {
-  const trpc = useTRPC();
+export function PostCard(props: { post: Post }) {
   const queryClient = useQueryClient();
-  const deletePost = useMutation(
-    trpc.post.delete.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries(trpc.post.pathFilter());
-      },
-      onError: (err) => {
-        toast.error(
-          err.data?.code === "UNAUTHORIZED"
-            ? "You must be logged in to delete a post"
-            : "Failed to delete post",
-        );
-      },
-    }),
-  );
+  const deletePost = useMutation({
+    mutationFn: (id: string) =>
+      deleteRemotePost(env.NEXT_PUBLIC_API_URL, id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: POSTS_LIST_QUERY_KEY });
+    },
+    onError: (err) => {
+      toast.error(
+        isUnauthorized(err)
+          ? "You must be logged in to delete a post"
+          : "Failed to delete post",
+      );
+    },
+  });
 
   return (
     <div className="bg-muted flex flex-row rounded-lg p-4">
