@@ -8,6 +8,7 @@ export interface GetClientSessionOptions {
   caller?: Caller;
   fetchFn?: typeof fetch;
   credentials?: RequestCredentials;
+  timeoutMs?: number;
 }
 
 /**
@@ -18,6 +19,11 @@ export async function getClientSession(
   baseUrl = "",
   options?: GetClientSessionOptions,
 ): Promise<Session | null> {
+  const controller =
+    typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeout = controller
+    ? setTimeout(() => controller.abort(), options?.timeoutMs ?? 3000)
+    : null;
   const api =
     options?.caller ??
     createCaller({
@@ -27,10 +33,14 @@ export async function getClientSession(
     });
 
   try {
-    const data = await api.get("/api/auth/session");
+    const data = await api.get("/api/auth/session", {
+      signal: controller?.signal,
+    });
     return zodSafeSession(data);
   } catch {
     return null;
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 

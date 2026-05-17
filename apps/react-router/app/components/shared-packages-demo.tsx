@@ -27,32 +27,43 @@ export function SharedPackagesDemo(props: { framework: WebFramework }) {
     : "invalid framework rejected";
 
   return (
-    <section className="mb-8 w-full max-w-2xl rounded-lg border border-gray-200 bg-gray-50 p-4 text-left text-sm dark:border-gray-700 dark:bg-gray-900/40">
-      <h2 className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
-        @acme/types + @acme/utils
+    <section className="bg-card/80 w-full rounded-md border border-white/10 p-5 text-left text-sm shadow-xl shadow-black/20">
+      <p className="text-accent text-xs font-semibold uppercase">
+        Shared packages
+      </p>
+      <h2 className="text-foreground mt-1 text-xl font-semibold">
+        Typed utilities travel with every app
       </h2>
-      <p className="mb-2 text-gray-600 dark:text-gray-400">
+      <p className="text-muted-foreground mt-2 leading-6">
         {monorepoFrameworksSentence()}
       </p>
-      <p className="mb-1 text-gray-800 dark:text-gray-200">
-        This app: <strong>{describeWebFramework(parsed)}</strong>{" "}
-        <span className="text-gray-600 dark:text-gray-400">
-          (runtime parse + unwrap: <code>{parsed}</code>)
-        </span>
-      </p>
-      <p className="mb-1 text-gray-600 dark:text-gray-400">
-        Invalid parse preserved as data: <code>{rejectedLabel}</code>
-      </p>
-      <p className="mb-1 text-gray-800 dark:text-gray-200">
-        Branded <code>UserId</code>:{" "}
-        <code className="text-xs">{String(toUserId(demoUser.id))}</code>
-      </p>
-      <p className="mb-1 text-gray-800 dark:text-gray-200">
-        <code>clamp(150, 0, 100)</code> → {clamp(150, 0, 100)}
-      </p>
-      <p className="text-gray-800 dark:text-gray-200">
-        <code>formatRelativeTime</code> → {formatRelativeTime(created)}
-      </p>
+      <div className="mt-4 grid gap-2">
+        <div className="bg-background/40 rounded-md border border-white/10 p-3">
+          <p className="text-foreground font-medium">
+            {describeWebFramework(parsed)}
+          </p>
+          <p className="text-muted-foreground">
+            Runtime parse + unwrap: <code>{parsed}</code>
+          </p>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+            Invalid parse: <code>{rejectedLabel}</code>
+          </p>
+          <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+            Clamp result: <code>{clamp(150, 0, 100)}</code>
+          </p>
+        </div>
+        <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+          Branded <code>UserId</code>:{" "}
+          <code className="text-xs break-all">
+            {String(toUserId(demoUser.id))}
+          </code>
+        </p>
+        <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+          Relative time: <code>{formatRelativeTime(created)}</code>
+        </p>
+      </div>
     </section>
   );
 }

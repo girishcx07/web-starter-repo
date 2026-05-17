@@ -7,7 +7,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 
-import { AuthProvider } from "@acme/auth";
+import { AuthProvider } from "@acme/auth/react";
 import { ThemeProvider, ThemeToggle } from "@acme/ui/theme";
 import { Toaster } from "@acme/ui/toast";
 
@@ -31,15 +31,15 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider>
-      <html lang="en" suppressHydrationWarning>
-        <head>
-          <meta charSet="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <Meta />
-          <Links />
-        </head>
-        <body className="bg-background text-foreground min-h-screen font-sans antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
+      </head>
+      <body className="bg-background text-foreground min-h-screen bg-[radial-gradient(circle_at_20%_0%,oklch(0.34_0.025_248/.24),transparent_30rem),radial-gradient(circle_at_80%_10%,oklch(0.30_0.045_162/.16),transparent_26rem),linear-gradient(135deg,oklch(0.10_0.012_248),oklch(0.16_0.012_248)_48%,oklch(0.09_0.01_248))] font-sans antialiased">
+        <ThemeProvider>
           <AuthProvider>
             <ReactQueryProvider>{children}</ReactQueryProvider>
           </AuthProvider>
@@ -49,9 +49,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Toaster />
           <ScrollRestoration />
           <Scripts />
-        </body>
-      </html>
-    </ThemeProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
 

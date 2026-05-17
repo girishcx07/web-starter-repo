@@ -1,5 +1,6 @@
 "use client";
 
+import type { FormEvent } from "react";
 import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import {
@@ -14,6 +15,7 @@ import {
   POSTS_LIST_QUERY_KEY,
   UpdatePostSchema,
 } from "@acme/api";
+import { useAuth } from "@acme/auth/react";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 import {
@@ -38,7 +40,9 @@ function isUnauthorized(e: unknown) {
 }
 
 export function CreatePostForm() {
+  const { session } = useAuth();
   const queryClient = useQueryClient();
+  const canMutate = Boolean(session);
   const createPost = useMutation({
     mutationFn: (input: CreatePostInput) => createPostAction(input),
     onSuccess: (post) => {
@@ -69,14 +73,35 @@ export function CreatePostForm() {
     onSubmit: (data) => createPost.mutate(data.value),
   });
 
+  const submitCreate = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canMutate) {
+      toast.error("Sign in through the auth flow to create posts");
+      return;
+    }
+    const formData = new FormData(event.currentTarget);
+    const next = CreatePostSchema.parse({
+      content: formData.get("content"),
+      title: formData.get("title"),
+    });
+    createPost.mutate(next);
+  };
+
   return (
     <form
-      className="w-full max-w-2xl"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
-      }}
+      className="bg-card/80 w-full rounded-md border border-white/10 p-5 shadow-xl shadow-black/20 backdrop-blur"
+      method="post"
+      onSubmit={submitCreate}
     >
+      <div className="mb-4 flex flex-col gap-1">
+        <p className="text-primary text-xs font-semibold uppercase">
+          Auth-gated CRUD
+        </p>
+        <h2 className="text-foreground text-xl font-semibold">Create a post</h2>
+        <p className="text-muted-foreground text-sm">
+          Mutations are available only after the shared auth session is active.
+        </p>
+      </div>
       <FieldGroup>
         <form.Field
           name="title"
@@ -127,8 +152,12 @@ export function CreatePostForm() {
           }}
         />
       </FieldGroup>
-      <Button type="submit" disabled={createPost.isPending}>
-        {createPost.isPending ? "Creating..." : "Create"}
+      <Button type="submit" disabled={!canMutate || createPost.isPending}>
+        {!canMutate
+          ? "Sign in to create"
+          : createPost.isPending
+            ? "Creating..."
+            : "Create"}
       </Button>
     </form>
   );
@@ -164,7 +193,9 @@ export function PostList() {
 }
 
 export function PostCard(props: { post: Post }) {
+  const { session } = useAuth();
   const queryClient = useQueryClient();
+  const canMutate = Boolean(session);
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(props.post.title);
   const [content, setContent] = useState(props.post.content);
@@ -212,7 +243,7 @@ export function PostCard(props: { post: Post }) {
   };
 
   return (
-    <div className="bg-muted flex min-h-48 flex-col rounded-md border p-4">
+    <div className="bg-card/80 flex min-h-48 flex-col rounded-md border border-white/10 p-4 shadow-lg shadow-black/10">
       <div className="grow">
         <p className="text-muted-foreground text-xs font-medium">
           Post #{props.post.id}
@@ -232,7 +263,7 @@ export function PostCard(props: { post: Post }) {
           </div>
         ) : (
           <>
-            <h2 className="text-primary mt-1 line-clamp-2 text-lg font-bold">
+            <h2 className="text-foreground mt-1 line-clamp-2 text-lg font-bold">
               {props.post.title}
             </h2>
             <p className="mt-3 line-clamp-4 text-sm">{props.post.content}</p>
@@ -240,7 +271,11 @@ export function PostCard(props: { post: Post }) {
         )}
       </div>
       <div className="mt-4 flex gap-3">
-        {isEditing ? (
+        {!canMutate ? (
+          <p className="text-muted-foreground text-xs font-medium">
+            Sign in to edit or delete
+          </p>
+        ) : isEditing ? (
           <>
             <Button
               variant="ghost"
@@ -272,14 +307,16 @@ export function PostCard(props: { post: Post }) {
             Edit
           </Button>
         )}
-        <Button
-          variant="ghost"
-          className="text-primary h-8 cursor-pointer px-0 text-xs font-bold uppercase hover:bg-transparent hover:text-white"
-          disabled={deletePost.isPending}
-          onClick={() => deletePost.mutate()}
-        >
-          Delete
-        </Button>
+        {canMutate ? (
+          <Button
+            variant="ghost"
+            className="text-primary h-8 cursor-pointer px-0 text-xs font-bold uppercase hover:bg-transparent hover:text-white"
+            disabled={deletePost.isPending}
+            onClick={() => deletePost.mutate()}
+          >
+            Delete
+          </Button>
+        ) : null}
       </div>
     </div>
   );
@@ -288,7 +325,7 @@ export function PostCard(props: { post: Post }) {
 export function PostCardSkeleton(props: { pulse?: boolean }) {
   const { pulse = true } = props;
   return (
-    <div className="bg-muted flex min-h-48 flex-row rounded-md border p-4">
+    <div className="bg-card/70 flex min-h-48 flex-row rounded-md border border-white/10 p-4">
       <div className="grow">
         <h2
           className={cn(

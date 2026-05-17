@@ -9,10 +9,12 @@ export function formatList(
   conjunction = "and",
 ): string {
   if (items.length === 0) return "";
-  if (items.length === 1) return items[0]!;
-  if (items.length === 2) return `${items[0]!} ${conjunction} ${items[1]!}`;
+  const [first, second] = items;
+  if (items.length === 1) return first ?? "";
+  if (items.length === 2)
+    return `${first ?? ""} ${conjunction} ${second ?? ""}`;
   const head = items.slice(0, -1).join(", ");
-  const tail = items[items.length - 1]!;
+  const tail = items.at(-1) ?? "";
   return `${head}, ${conjunction} ${tail}`;
 }
 

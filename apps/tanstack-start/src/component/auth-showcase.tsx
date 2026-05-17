@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { useAuth } from "@acme/auth";
+import { useAuth } from "@acme/auth/react";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
 
@@ -11,17 +11,28 @@ export function AuthShowcase() {
   const [error, setError] = useState<string | null>(null);
 
   if (status === "loading") {
-    return <p className="text-muted-foreground text-sm">Checking session…</p>;
+    return (
+      <section className="bg-card/80 min-h-full rounded-md border border-white/10 p-5 shadow-xl shadow-black/20">
+        <p className="text-muted-foreground text-sm">Checking session...</p>
+      </section>
+    );
   }
 
   if (!session) {
     return (
-      <div className="bg-muted flex min-h-full w-full flex-col gap-3 rounded-md border p-4">
-        <p className="text-muted-foreground text-sm font-medium">Auth flow</p>
-        <p className="text-sm">
-          Sign in with the demo credentials, then sign out to verify cookie
-          session handling.
-        </p>
+      <section className="bg-card/80 flex min-h-full w-full flex-col gap-4 rounded-md border border-white/10 p-5 shadow-xl shadow-black/20">
+        <div>
+          <p className="text-accent text-xs font-semibold uppercase">
+            Auth flow
+          </p>
+          <h2 className="text-foreground mt-1 text-xl font-semibold">
+            Sign in to unlock CRUD
+          </h2>
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
+            Demo credentials are prefilled so every app can prove the same
+            cookie-backed access model.
+          </p>
+        </div>
         <Input
           type="email"
           autoComplete="email"
@@ -40,6 +51,7 @@ export function AuthShowcase() {
           <p className="text-destructive text-center text-sm">{error}</p>
         ) : null}
         <Button
+          className="mt-auto"
           onClick={async () => {
             setError(null);
             try {
@@ -51,18 +63,28 @@ export function AuthShowcase() {
         >
           Sign in
         </Button>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="bg-muted flex min-h-full w-full flex-col justify-between gap-4 rounded-md border p-4">
-      <p className="text-muted-foreground text-sm font-medium">Auth flow</p>
-      <p className="text-lg font-semibold">
-        <span>Logged in as {session.user.name}</span>
-      </p>
+    <section className="bg-card/80 flex min-h-full w-full flex-col justify-between gap-5 rounded-md border border-white/10 p-5 shadow-xl shadow-black/20">
+      <div>
+        <p className="text-accent text-xs font-semibold uppercase">
+          Authenticated
+        </p>
+        <h2 className="text-foreground mt-1 text-xl font-semibold">
+          {session.user.name}
+        </h2>
+        <p className="text-muted-foreground mt-2 text-sm leading-6">
+          This session can create, edit, and delete posts across the boilerplate
+          flow.
+        </p>
+      </div>
 
-      <Button onClick={() => void logout()}>Sign out</Button>
-    </div>
+      <Button variant="secondary" onClick={() => void logout()}>
+        Sign out
+      </Button>
+    </section>
   );
 }

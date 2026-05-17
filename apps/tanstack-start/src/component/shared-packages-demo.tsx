@@ -27,32 +27,43 @@ export function SharedPackagesDemo(props: { framework: WebFramework }) {
     : "invalid framework rejected";
 
   return (
-    <section className="bg-muted/40 w-full max-w-2xl rounded-lg border p-4 text-left text-sm">
-      <h2 className="text-foreground mb-2 font-semibold">
-        @acme/types + @acme/utils
+    <section className="bg-card/80 w-full rounded-md border border-white/10 p-5 text-left text-sm shadow-xl shadow-black/20">
+      <p className="text-accent text-xs font-semibold uppercase">
+        Shared packages
+      </p>
+      <h2 className="text-foreground mt-1 text-xl font-semibold">
+        Typed utilities travel with every app
       </h2>
-      <p className="text-muted-foreground mb-2">
+      <p className="text-muted-foreground mt-2 leading-6">
         {monorepoFrameworksSentence()}
       </p>
-      <p className="mb-1">
-        This app: <strong>{describeWebFramework(parsed)}</strong>{" "}
-        <span className="text-muted-foreground">
-          (runtime parse + unwrap: <code>{parsed}</code>)
-        </span>
-      </p>
-      <p className="text-muted-foreground mb-1">
-        Invalid parse preserved as data: <code>{rejectedLabel}</code>
-      </p>
-      <p className="mb-1">
-        Branded <code>UserId</code>:{" "}
-        <code className="text-xs">{String(toUserId(demoUser.id))}</code>
-      </p>
-      <p className="mb-1">
-        <code>clamp(150, 0, 100)</code> → {clamp(150, 0, 100)}
-      </p>
-      <p>
-        <code>formatRelativeTime</code> → {formatRelativeTime(created)}
-      </p>
+      <div className="mt-4 grid gap-2">
+        <div className="bg-background/40 rounded-md border border-white/10 p-3">
+          <p className="text-foreground font-medium">
+            {describeWebFramework(parsed)}
+          </p>
+          <p className="text-muted-foreground">
+            Runtime parse + unwrap: <code>{parsed}</code>
+          </p>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+            Invalid parse: <code>{rejectedLabel}</code>
+          </p>
+          <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+            Clamp result: <code>{clamp(150, 0, 100)}</code>
+          </p>
+        </div>
+        <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+          Branded <code>UserId</code>:{" "}
+          <code className="text-xs break-all">
+            {String(toUserId(demoUser.id))}
+          </code>
+        </p>
+        <p className="bg-background/40 text-muted-foreground rounded-md border border-white/10 p-3">
+          Relative time: <code>{formatRelativeTime(created)}</code>
+        </p>
+      </div>
     </section>
   );
 }
